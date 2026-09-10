@@ -1,5 +1,5 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSy..."
   authDomain: "school-i-hub.firebaseapp.com",
   projectId: "school-i-hub",
   storageBucket: "school-i-hub.firebasestorage.app",
