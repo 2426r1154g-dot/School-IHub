@@ -1,4 +1,3 @@
-// Firebase Web App configuration
 export const firebaseConfig = {
   apiKey: "AIzaSyAm5-GviQNDvZDlevCw5rHEFShIYmHfM-U",
   authDomain: "school-i-hub.firebaseapp.com",
