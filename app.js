@@ -514,7 +514,28 @@ const refs={
 };
 function showReference(key,extra=""){const r=refs[key];if(!r)return;$("referenceDetail").innerHTML=`<h3>${esc(r.title)}</h3><ul>${r.points.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><p><b>💡 勉強の進め方：</b>${esc(r.method)}</p>${extra}`;}
 document.querySelectorAll(".reference-item").forEach(b=>b.addEventListener("click",()=>showReference(b.dataset.ref)));
-function searchReference(){const q=$("referenceSearch")?.value.trim().toLowerCase();if(!q)return toast("検索する用語を入力してね");const found=Object.entries(refs).filter(([,r])=>r.title.toLowerCase().includes(q)||r.points.some(x=>x.toLowerCase().includes(q))||r.method.toLowerCase().includes(q));$("referenceDetail").innerHTML=found.length?`<h3>🔎「${esc(q)}」の検索結果</h3>${found.map(([k,r])=>`<div class="study-row"><span><b>${esc(r.title)}</b><br>${esc(r.points.find(x=>x.toLowerCase().includes(q))||r.method)}</span><button class="action" data-reference-open="${k}">開く</button></div>`).join("")}:`<h3>🔎「${esc(q)}」</h3><p>該当する項目が見つからなかったよ。</p>`;}
+function searchReference(){
+  const input=$("referenceSearch");
+  const q=input ? input.value.trim().toLowerCase() : "";
+  if(!q) return toast("検索する用語を入力してね");
+  const found=Object.entries(refs).filter(function(entry){
+    const r=entry[1];
+    return r.title.toLowerCase().includes(q) || r.points.some(function(x){return x.toLowerCase().includes(q);}) || r.method.toLowerCase().includes(q);
+  });
+  const detail=$("referenceDetail");
+  if(!detail) return;
+  if(found.length){
+    let html="<h3>🔎「"+esc(q)+"」の検索結果</h3>";
+    html+=found.map(function(entry){
+      const k=entry[0], r=entry[1];
+      const hit=r.points.find(function(x){return x.toLowerCase().includes(q);}) || r.method;
+      return "<div class=\"study-row\"><span><b>"+esc(r.title)+"</b><br>"+esc(hit)+"</span><button class=\"action\" data-reference-open=\""+esc(k)+"\">開く</button></div>";
+    }).join("");
+    detail.innerHTML=html;
+  }else{
+    detail.innerHTML="<h3>🔎「"+esc(q)+"」</h3><p>該当する項目が見つからなかったよ。</p>";
+  }
+}
 on("referenceSearchBtn","click",searchReference);on("referenceSearch","keydown",e=>{if(e.key==="Enter")searchReference()});
 
 function renderFormulas(){const defaults=[["二次方程式","x = (-b ± √(b²-4ac)) / 2a"],["因数分解","a²-b² = (a-b)(a+b)"],["円","面積 = πr² / 円周 = 2πr"]];$("formulaList").innerHTML=defaults.map(x=>`<div class="formula-list"><b>${esc(x[0])}</b> ${esc(x[1])}</div>`).join("")+studyState.formulas.map((x,i)=>`<div class="formula-list"><b>${esc(x.name)}</b> ${esc(x.text)} <button class="action" data-formula-delete="${i}">削除</button></div>`).join("");}
