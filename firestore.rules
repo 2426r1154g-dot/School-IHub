@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function conversationMember(cid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/conversations/$(cid))
+        && request.auth.uid in get(/databases/$(database)/documents/conversations/$(cid)).data.members;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if owner(uid);
+    }
+
+    match /posts/{postId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if signedIn() && (
+        resource.data.uid == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes','likedBy'])
+      );
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /questions/{questionId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if signedIn() && (
+        resource.data.uid == request.auth.uid ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answers']) &&
+          request.resource.data.answers is list &&
+          resource.data.answers is list &&
+          request.resource.data.answers.size() == resource.data.answers.size() + 1 &&
+          request.resource.data.answers[resource.data.answers.size()].uid == request.auth.uid
+        )
+      );
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /events/{eventId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /studyLogs/{logId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+      allow create: if signedIn()
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.auth.uid in request.resource.data.members;
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.members == resource.data.members;
+      allow delete: if signedIn() && request.auth.uid in resource.data.members;
+
+      match /messages/{messageId} {
+        allow read: if conversationMember(conversationId);
+        allow create: if conversationMember(conversationId)
+          && request.resource.data.from == request.auth.uid
+          && request.resource.data.to in get(/databases/$(database)/documents/conversations/$(conversationId)).data.members;
+        allow update, delete: if conversationMember(conversationId)
+          && resource.data.from == request.auth.uid;
+      }
+    }
+  }
+}
